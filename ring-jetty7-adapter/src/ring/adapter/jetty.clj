@@ -48,7 +48,6 @@
             (.setHandled request true)))))
     (doWebSocketConnect
      [#^HttpServletRequest request #^String protocol]
-     (println "doWebSocketConnect")
      (let [request-map  (build-request-map request)
            response-map (handler
                          (merge

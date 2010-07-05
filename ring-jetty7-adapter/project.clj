@@ -1,8 +1,8 @@
-(defproject ring/ring-jetty-adapter "0.2.3"
+(defproject ring/ring-jetty7-adapter "0.2.4"
   :description "Ring Jetty adapter."
   :url "http://github.com/mmcgrana/ring"
-  :dependencies [[ring/ring-core "0.2.3"]
-                 [ring/ring-servlet "0.2.3"]
+  :dependencies [[ring/ring-core "0.2.4"]
+                 [ring/ring-servlet "0.2.4"]
                  [org.eclipse.jetty/jetty-server "7.1.4.v20100610"]
                  [org.eclipse.jetty/jetty-util "7.1.4.v20100610"]
                  [org.eclipse.jetty/jetty-websocket "7.1.4.v20100610"]]
