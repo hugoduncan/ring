@@ -54,6 +54,18 @@
   (if-let [file (get-file filepath opts)]
     (response file)))
 
+(defn resource-response
+  "Returns a Ring response to serve a packaged resource, or nil if the
+  resource does not exist.
+  Options:
+    :root - take the resource relative to this root"
+  [path & [opts]]
+  (let [path   (str (:root opts "") "/" path)
+        path   (.replace path "//" "/")
+        loader (clojure.lang.RT/baseLoader)]
+    (if-let [resource (.getResourceAsStream loader path)]
+      (response resource))))
+
 (defn status
   "Returns an updated Ring response with the given status."
   [resp status]
