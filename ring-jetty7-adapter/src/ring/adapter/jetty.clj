@@ -78,7 +78,7 @@
       []
     (onConnect
      [outbound]
-     (on-connect (this outbound)))
+     (on-connect this outbound))
     (onDisconnect [] (on-disconnect this))
     (onMessage
      ([frame, data, offset, length]  (on-message this frame data offset length))
