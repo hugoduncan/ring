@@ -78,11 +78,11 @@
       []
     (onConnect
      [outbound]
-     (on-connect (websocket-connection outbound)))
-    (onDisconnect [] (on-disconnect))
+     (on-connect (this outbound)))
+    (onDisconnect [] (on-disconnect this))
     (onMessage
-     ([frame, data, offset, length]  (on-message frame data offset length))
-     ([frame, data] (on-message frame data)))))
+     ([frame, data, offset, length]  (on-message this frame data offset length))
+     ([frame, data] (on-message this frame data)))))
 
 (defn- add-ssl-connector!
   "Add an SslSocketConnector to a Jetty Server instance."
