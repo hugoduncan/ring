@@ -1,6 +1,9 @@
 (ns ring.util.servlet.jetty7
   "Compatibility functions for turning a ring handler into a jetty7 Java servlet."
-  (:require ring.util.servlet)
+  (:require
+   ring.util.servlet
+   ring.websocket
+   ring.adapter.jetty)
   (:import (org.eclipse.jetty.websocket WebSocketServlet)
            (javax.servlet.http HttpServletRequest HttpServlet)))
 
@@ -17,7 +20,9 @@
                           (merge {:request-method :websocket-connect
                                   :websocket-protocol protocol}))
           response-map (handler request-map)]
-      (:websocket response-map))))
+      (when response-map
+         (let [web-socket (:websocket response-map)]
+           (ring.adapter.jetty.DelegatedWebSocket. web-socket response-map))))))
 
 (defn websocket-servlet
   "Create a jetty7 servlet from a Ring handler."

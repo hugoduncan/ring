@@ -4,10 +4,34 @@
            (org.eclipse.jetty.server Server Request Response)
            (org.eclipse.jetty.server.bio SocketConnector)
            (org.eclipse.jetty.server.ssl SslSocketConnector)
-           (org.eclipse.jetty.websocket WebSocketHandler)
+           ( org.eclipse.jetty.websocket WebSocket WebSocketHandler WebSocketConnection)
            (javax.servlet.http HttpServletRequest HttpServletResponse))
+  (:require ring.websocket)
+  (:import ring.websocket.Connection)
   (:use (ring.util servlet)
         (clojure.contrib except java-utils)))
+
+(extend-type WebSocketConnection
+  ring.websocket/Connection
+  (send [this message] (.sendMessage this message))
+  (close [this] (.disconnect this)))
+
+(deftype DelegatedWebSocket
+  [ws response-map]
+  org.eclipse.jetty.websocket.WebSocket
+  (onConnect
+   [_ outbound]
+   (ring.websocket/on-connect ws outbound))
+  (onMessage
+   [_ frame data offset length]
+   (ring.websocket/on-message
+    ws {:websocket ws :body (String. data offset length)}))
+  (onMessage
+   [_ frame data]
+   (ring.websocket/on-message
+    ws {:websocket ws :body data}))
+  (onDisconnect [_]
+                (ring.websocket/on-disconnect ws)))
 
 (defn- proxy-handler
   "Returns an Jetty Handler implementation for the given Ring handler."
@@ -48,41 +72,13 @@
             (.setHandled request true)))))
     (doWebSocketConnect
      [#^HttpServletRequest request #^String protocol]
-     (let [request-map  (build-request-map request)
-           response-map (handler
-                         (merge
-                          request-map
-                          {:request-method :websocket-connect
-                           :websocket-protocol protocol}))]
+     (let [request-map (-> (build-request-map request)
+                           (merge {:request-method :websocket-connect
+                                   :websocket-protocol protocol}))
+           response-map (handler request-map)]
        (when response-map
-         (:websocket response-map))))))
-
-(defn- websocket-connection
-  "Create proxy functions for the WebSocketConnection object."
-  [connection]
-  {:send (fn
-           ([data]
-              (.sendMessage connection (byte 0) data))
-           ([data frame]
-              (.sendMessage connection (byte frame) data))
-           ([data offset length]
-              (.sendMessage connection (byte 0) data offset length))
-           ([data offset length frame]
-              (.sendMessage connection (byte frame) data offset length)))
-   :disconnect (fn [] (.disconnect connection))})
-
-(defn websocket-proxy
-  "Create a WebSocket proxy using the supplied functions."
-  [{:keys [on-connect on-disconnect on-message]}]
-  (proxy [org.eclipse.jetty.websocket.WebSocket]
-      []
-    (onConnect
-     [outbound]
-     (on-connect this outbound))
-    (onDisconnect [] (on-disconnect this))
-    (onMessage
-     ([frame, data, offset, length]  (on-message this frame data offset length))
-     ([frame, data] (on-message this frame data)))))
+         (let [web-socket (:websocket response-map)]
+           (DelegatedWebSocket. web-socket response-map)))))))
 
 (defn- add-ssl-connector!
   "Add an SslSocketConnector to a Jetty Server instance."

@@ -48,20 +48,19 @@
 
 (def outbound-channel (atom nil))
 
+(def ping-seen (atom false))
+
 (defn handler2 [request]
-  (println request)
   (if (= :websocket-connect (:request-method request))
     {:websocket
-     (websocket-proxy
-      {:on-connect (fn [outbound]
-                     (println "onConnect WebSocket")
-                     (reset! outbound-channel outbound))
-       :on-disconnect (fn [] (println "onDisconnect"))
-       :on-message (fn
-                     ([frame, data, offset, length]  (println "onMessage 1"))
-                     ([frame, data]
-                        (println "onMessage " data)
-                        ((:send @outbound-channel) "pong")))})}
+     (reify ring.websocket.WebSocket
+            (on-connect [_ outbound]
+                        (reset! outbound-channel outbound))
+            (on-disconnect [_] )
+            (on-message [_ message-map]
+                        (if (= (:body message-map) "ping")
+                          (reset! @ping-seen true))
+                        ((:send @outbound-channel) "pong")))}
     {:body "hi" :status 200 :headers {"ContentType" "text/plain"}}))
 
 ;; Ugly state mutating websocket client code
@@ -87,6 +86,7 @@
        (.rewind)))))
 
 (deftest run-jetty-websocket-test
+  (reset! ping-seen false)
   (let [server (reset! the-server
                        (run-jetty
                         handler2 {:port 0 :join? false
@@ -132,5 +132,6 @@
       (if (pos? n)
         (recur (dec n))
         (is (= @state :received))))
+    (is @ping-seen)
     (.stop server)))
 
