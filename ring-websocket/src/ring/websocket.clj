@@ -15,14 +15,20 @@
   (on-disconnect [_]))
 
 
+(deftype SimpleChannel
+  [connections handler]
+  WebSocket
+  (on-connect
+   [_ connection-map]
+   (swap! connections conj connection-map))
+  (on-message
+   [_ message-map]
+   (let [response (handler message-map)]
+     (if-let [body (:body response)]
+       (doseq [connection @connections]
+         (send connection body)))))
+  (on-disconnect [_] nil))
 
-
-;; (defprotocol Channel
-;;   [connection]
-;;   (on-connect )
-;;   (send [_ message])
-;;   (listen [_ listener]))
-
-;; (defprotocol Connection
-;;   (send ([_ message] [_ message frame]) "Send a message over the connection")
-;;   (close [_] "Close the connection"))
+(defn simple-channel
+  [handler]
+  (SimpleChannel. (atom []) handler))

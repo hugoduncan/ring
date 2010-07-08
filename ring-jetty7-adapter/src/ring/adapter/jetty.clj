@@ -17,7 +17,7 @@
   (close [this] (.disconnect this)))
 
 (deftype DelegatedWebSocket
-  [ws response-map]
+  [ws request-map response-map]
   org.eclipse.jetty.websocket.WebSocket
   (onConnect
    [_ outbound]
@@ -78,7 +78,7 @@
            response-map (handler request-map)]
        (when response-map
          (let [web-socket (:websocket response-map)]
-           (DelegatedWebSocket. web-socket response-map)))))))
+           (DelegatedWebSocket. web-socket request-map response-map)))))))
 
 (defn- add-ssl-connector!
   "Add an SslSocketConnector to a Jetty Server instance."

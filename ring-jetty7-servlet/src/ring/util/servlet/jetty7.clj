@@ -16,13 +16,13 @@
        #^String protocol]
     (let [request-map (-> request
                           (ring.util.servlet/build-request-map)
-                          (ring.util.servlet/merge-servlet-keys servlet request nil)
                           (merge {:request-method :websocket-connect
                                   :websocket-protocol protocol}))
           response-map (handler request-map)]
       (when response-map
          (let [web-socket (:websocket response-map)]
-           (ring.adapter.jetty.DelegatedWebSocket. web-socket response-map))))))
+           (ring.adapter.jetty.DelegatedWebSocket.
+            web-socket request-map response-map))))))
 
 (defn websocket-servlet
   "Create a jetty7 servlet from a Ring handler."
